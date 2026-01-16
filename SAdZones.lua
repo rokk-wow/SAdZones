@@ -99,10 +99,10 @@ end
 addon.managedFrames = addon.managedFrames or {}
 addon.originalParents = addon.originalParents or {}
 addon.frameFilterSettings = {}
+addon.toggleFrames = {}
 addon.config = {}
 addon.config.updateDelay = .2
 
--- List of protected frames that should not be modified
 local protectedFrames = {
     ["BattlefieldMapFrame"] = true,
 }
@@ -113,7 +113,6 @@ function addon:setFrameVisibility(frameName, visible)
         return
     end
     
-    -- Skip protected frames to avoid taint
     if protectedFrames[frameName] then
         addon:debug("Skipping protected frame: " .. frameName)
         return
@@ -163,10 +162,7 @@ function addon:setFrameVisibility(frameName, visible)
             else
                 addon:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no SetParent method")
             end            
-            -- Don't unregister events as this can break Blizzard functionality
-            -- if frame.UnregisterAllEvents then
-            --     frame:UnregisterAllEvents()
-            -- end            
+
             if not frame.sadzonesShowHooked then
                 hooksecurefunc(frame, "Show", function(self)
                     if not addon.managedFrames[frameName] then
@@ -228,8 +224,6 @@ end
 function addon.frameFilterSettings.showZoneMap(self, show)
     local showFrame = show == true
     
-    -- Don't manipulate BattlefieldMapFrame directly as it's a protected frame
-    -- Instead, use the CVar to control visibility
     if showFrame then
         SetCVar("showBattlefieldMinimap", "1")
         self:debug("Enabled showBattlefieldMinimap CVar")
@@ -237,9 +231,6 @@ function addon.frameFilterSettings.showZoneMap(self, show)
         SetCVar("showBattlefieldMinimap", "0")
         self:debug("Disabled showBattlefieldMinimap CVar")
     end
-    
-    -- Note: BattlefieldMapFrame is protected and should not be manipulated directly
-    -- The CVar will control its visibility without causing taint
     
     self:debug("Set showZoneMap to: " .. tostring(showFrame))
 end
@@ -257,3 +248,45 @@ function addon.frameFilterSettings.showClock(self, show)
     self:setFrameVisibility("AddonCompartmentFrame", showFrame)
     self:debug("Set showClock to: " .. tostring(showFrame))
 end
+
+function addon:RegisterFunctions()
+    self:RegisterSlashCommand("toggle", addon.ToggleFrameCommand)
+end
+
+function addon.ToggleFrameCommand(frameName)
+    if not frameName or frameName == "" then
+        addon:info("Usage: /sadzones toggle <frameName>")
+        addon:info("Example: /sadzones toggle minimap")
+        return
+    end
+    
+    local normalizedName = string.lower(frameName)
+    
+    local filterFunc = nil
+    local funcKey = nil
+    
+    for key, func in pairs(addon.frameFilterSettings) do
+        if string.lower(key) == normalizedName or string.lower(key) == "show" .. normalizedName then
+            filterFunc = func
+            funcKey = key
+            break
+        end
+    end
+    
+    if not filterFunc then
+        addon:info("Unknown frame: " .. frameName)
+        return
+    end
+    
+    if addon.toggleFrames[funcKey] == nil then
+        addon.toggleFrames[funcKey] = true
+    end
+    
+    addon.toggleFrames[funcKey] = not addon.toggleFrames[funcKey]
+    
+    filterFunc(addon, addon.toggleFrames[funcKey])
+    
+    local status = addon.toggleFrames[funcKey] and "shown" or "hidden"
+    addon:info(frameName .. " is now " .. status)
+end
+
