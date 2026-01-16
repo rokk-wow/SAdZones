@@ -50,6 +50,12 @@ function addon:LoadConfig()
                     default = true,
                     onValueChange = self.ValueChanged
                 },
+                {
+                    type = "checkbox",
+                    name = "showClock",
+                    default = true,
+                    onValueChange = self.ValueChanged
+                },
             }
         }
     end
@@ -96,9 +102,20 @@ addon.frameFilterSettings = {}
 addon.config = {}
 addon.config.updateDelay = .2
 
+-- List of protected frames that should not be modified
+local protectedFrames = {
+    ["BattlefieldMapFrame"] = true,
+}
+
 function addon:setFrameVisibility(frameName, visible)
     if not frameName then
         addon:debug("setFrameVisibility failed: frameName is nil")
+        return
+    end
+    
+    -- Skip protected frames to avoid taint
+    if protectedFrames[frameName] then
+        addon:debug("Skipping protected frame: " .. frameName)
         return
     end
     
@@ -146,9 +163,10 @@ function addon:setFrameVisibility(frameName, visible)
             else
                 addon:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no SetParent method")
             end            
-            if frame.UnregisterAllEvents then
-                frame:UnregisterAllEvents()
-            end            
+            -- Don't unregister events as this can break Blizzard functionality
+            -- if frame.UnregisterAllEvents then
+            --     frame:UnregisterAllEvents()
+            -- end            
             if not frame.sadzonesShowHooked then
                 hooksecurefunc(frame, "Show", function(self)
                     if not addon.managedFrames[frameName] then
@@ -210,23 +228,18 @@ end
 function addon.frameFilterSettings.showZoneMap(self, show)
     local showFrame = show == true
     
-    local currentCVar = GetCVar("showBattlefieldMinimap")
-    if currentCVar == "0" then
+    -- Don't manipulate BattlefieldMapFrame directly as it's a protected frame
+    -- Instead, use the CVar to control visibility
+    if showFrame then
         SetCVar("showBattlefieldMinimap", "1")
         self:debug("Enabled showBattlefieldMinimap CVar")
+    else
+        SetCVar("showBattlefieldMinimap", "0")
+        self:debug("Disabled showBattlefieldMinimap CVar")
     end
     
-    self:setFrameVisibility("BattlefieldMapFrame", showFrame)
-    
-    if addon.config and addon.config.updateDelay then
-        C_Timer.After(addon.config.updateDelay, function()
-            local frame = _G["BattlefieldMapFrame"]
-            if frame and frame.SetGlobalAlpha then
-                frame:SetGlobalAlpha(1.0)
-                self:debug("Set BattlefieldMapFrame to 100% opacity")
-            end
-        end)
-    end
+    -- Note: BattlefieldMapFrame is protected and should not be manipulated directly
+    -- The CVar will control its visibility without causing taint
     
     self:debug("Set showZoneMap to: " .. tostring(showFrame))
 end
@@ -236,4 +249,11 @@ function addon.frameFilterSettings.showStatusBar(self, show)
     self:setFrameVisibility("MainStatusTrackingBarContainer", showFrame)
     self:setFrameVisibility("MainStatusTrackingBar", showFrame)
     self:debug("Set showStatusBar to: " .. tostring(showFrame))
+end
+
+function addon.frameFilterSettings.showClock(self, show)
+    local showFrame = show == true
+    self:setFrameVisibility("TimeManagerClockButton", showFrame)
+    self:setFrameVisibility("AddonCompartmentFrame", showFrame)
+    self:debug("Set showClock to: " .. tostring(showFrame))
 end

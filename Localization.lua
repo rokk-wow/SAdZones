@@ -23,6 +23,9 @@ addon.locale.enEN = {
     showZoneMapTooltip = "Show or hide the battlefield map frame in this zone.",    
     showStatusBar = "Show Status Bar",
     showStatusBarTooltip = "Show or hide the main status tracking bars in this zone.",
+    
+    showClock = "Show Clock",
+    showClockTooltip = "Show or hide the clock button in this zone.",
 }
 
 -- Spanish
@@ -44,6 +47,9 @@ addon.locale.esES = {
     showZoneMapTooltip = "Mostrar u ocultar el mapa del campo de batalla en esta zona.",    
     showStatusBar = "Mostrar Barra de Estado",
     showStatusBarTooltip = "Mostrar u ocultar las barras de seguimiento de estado en esta zona.",
+    
+    showClock = "Mostrar Reloj",
+    showClockTooltip = "Mostrar u ocultar el botón de reloj en esta zona.",
 }
 
 addon.locale.esMX = addon.locale.esES
@@ -67,6 +73,9 @@ addon.locale.ptBR = {
     showZoneMapTooltip = "Mostrar ou ocultar o mapa do campo de batalha nesta zona.",    
     showStatusBar = "Mostrar Barra de Status",
     showStatusBarTooltip = "Mostrar ou ocultar as barras de rastreamento de status nesta zona.",
+    
+    showClock = "Mostrar Relógio",
+    showClockTooltip = "Mostrar ou ocultar o botão do relógio nesta zona.",
 }
 
 -- French
@@ -88,6 +97,9 @@ addon.locale.frFR = {
     showZoneMapTooltip = "Afficher ou masquer la carte du champ de bataille dans cette zone.",    
     showStatusBar = "Afficher la Barre de Statut",
     showStatusBarTooltip = "Afficher ou masquer les barres de suivi de statut dans cette zone.",
+    
+    showClock = "Afficher l'Horloge",
+    showClockTooltip = "Afficher ou masquer le bouton de l'horloge dans cette zone.",
 }
 
 -- German
@@ -109,6 +121,9 @@ addon.locale.deDE = {
     showZoneMapTooltip = "Schlachtfeldkarte in dieser Zone anzeigen oder ausblenden.",    
     showStatusBar = "Statusleiste Anzeigen",
     showStatusBarTooltip = "Status-Tracking-Leisten in dieser Zone anzeigen oder ausblenden.",
+    
+    showClock = "Uhr Anzeigen",
+    showClockTooltip = "Uhr-Schaltfläche in dieser Zone anzeigen oder ausblenden.",
 }
 
 -- Russian
@@ -130,4 +145,7 @@ addon.locale.ruRU = {
     showZoneMapTooltip = "Показать или скрыть карту поля боя в этой зоне.",    
     showStatusBar = "Показать Строку Состояния",
     showStatusBarTooltip = "Показать или скрыть панели отслеживания статуса в этой зоне.",
+    
+    showClock = "Показать Часы",
+    showClockTooltip = "Показать или скрыть кнопку часов в этой зоне.",
 }
