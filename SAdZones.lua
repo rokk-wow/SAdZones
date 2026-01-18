@@ -253,7 +253,7 @@ function addon:RegisterFunctions()
     self:RegisterSlashCommand("toggle", addon.ToggleFrameCommand)
 end
 
-function addon.ToggleFrameCommand(frameName)
+function addon.ToggleFrameCommand(frameName, hide)
     if not frameName or frameName == "" then
         addon:info("Usage: /sadzones toggle <frameName>")
         addon:info("Example: /sadzones toggle minimap")
@@ -278,8 +278,10 @@ function addon.ToggleFrameCommand(frameName)
         return
     end
     
-    if addon.toggleFrames[funcKey] == nil then
-        addon.toggleFrames[funcKey] = true
+    if hide then
+        if addon.toggleFrames[funcKey] == nil then
+            addon.toggleFrames[funcKey] = true
+        end
     end
     
     addon.toggleFrames[funcKey] = not addon.toggleFrames[funcKey]

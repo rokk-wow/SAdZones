@@ -1,6 +1,6 @@
 ## Interface: 120000, 120001
 ## Title: SAdZones
-## Author: Your Name
+## Author: Rôkk-Wyrmrest Accord
 ## Version: 1.0
 ## SavedVariables: SAdZones_Settings_Global
 ## SavedVariablesPerCharacter: SAdZones_Settings_Char
