@@ -102,6 +102,7 @@ addon.frameFilterSettings = {}
 addon.toggleFrames = {}
 addon.config = {}
 addon.config.updateDelay = .2
+addon.CombatSafe = addon.CombatSafe or {}
 
 local protectedFrames = {
     ["BattlefieldMapFrame"] = true,
@@ -144,23 +145,27 @@ function addon:setFrameVisibility(frameName, visible)
         return
     end
     
+    self.CombatSafe.manipulateFrame(self, frame, frameName, visible)
+end
+
+addon.CombatSafe.manipulateFrame = function(self, frame, frameName, visible)
     local success, err = pcall(function()
         if not visible then
             if not frame.Hide then
-                addon:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no Hide method")
+                self:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no Hide method")
                 return
             end
             
-            if frame.SetParent and frame.GetParent and not addon.originalParents[frameName] then
-                addon.originalParents[frameName] = frame:GetParent()
+            if frame.SetParent and frame.GetParent and not self.originalParents[frameName] then
+                self.originalParents[frameName] = frame:GetParent()
             end
             
             frame:Hide()
             
             if frame.SetParent then
-                frame:SetParent(addon.hiddenParent)
+                frame:SetParent(self.hiddenParent)
             else
-                addon:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no SetParent method")
+                self:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no SetParent method")
             end            
 
             if not frame.sadzonesShowHooked then
@@ -171,20 +176,20 @@ function addon:setFrameVisibility(frameName, visible)
                 end)
                 frame.sadzonesShowHooked = true
             end            
-            addon:debug("Hid frame: " .. frameName)
+            self:debug("Hid frame: " .. frameName)
         else
             if frame.SetParent then
-                local originalParent = addon.originalParents[frameName]
+                local originalParent = self.originalParents[frameName]
                 if originalParent then
                     frame:SetParent(originalParent)
                 else
                     frame:SetParent(UIParent)
                 end
             else
-                addon:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no SetParent method")
+                self:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no SetParent method")
             end            
             if not frame.Show then
-                addon:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no Show method")
+                self:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no Show method")
                 return
             end            
             frame:Show()            
@@ -192,7 +197,7 @@ function addon:setFrameVisibility(frameName, visible)
     end)
     
     if not success then
-        addon:debug("setFrameVisibility failed for frame '" .. frameName .. "': " .. tostring(err))
+        self:debug("setFrameVisibility failed for frame '" .. frameName .. "': " .. tostring(err))
     end
 end
 
@@ -224,6 +229,12 @@ end
 function addon.frameFilterSettings.showZoneMap(self, show)
     local showFrame = show == true
     
+    self.CombatSafe.setBattlefieldMinimapCVar(self, showFrame)
+    
+    self:debug("Set showZoneMap to: " .. tostring(showFrame))
+end
+
+addon.CombatSafe.setBattlefieldMinimapCVar = function(self, showFrame)
     if showFrame then
         SetCVar("showBattlefieldMinimap", "1")
         self:debug("Enabled showBattlefieldMinimap CVar")
@@ -231,8 +242,6 @@ function addon.frameFilterSettings.showZoneMap(self, show)
         SetCVar("showBattlefieldMinimap", "0")
         self:debug("Disabled showBattlefieldMinimap CVar")
     end
-    
-    self:debug("Set showZoneMap to: " .. tostring(showFrame))
 end
 
 function addon.frameFilterSettings.showStatusBar(self, show)
