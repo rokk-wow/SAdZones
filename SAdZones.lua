@@ -7,11 +7,11 @@ addon.savedVarsPerCharName = "SAdZones_Settings_Char"
 addon.compartmentFuncName = "SAdZones_Compartment_Func"
 
 function addon:Initialize()
-    self.config.version = "1.0"
+    self.sadCore.version = "1.0"
     self.author = "Rôkk-Wyrmrest Accord"
 
     for _, zoneName in ipairs(addon.zones) do
-        self.config.settings[zoneName] = {
+        self.sadCore.panels[zoneName] = {
             title = zoneName .. "Title",
             controls = {
                 {
