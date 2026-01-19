@@ -6,7 +6,7 @@ addon.savedVarsGlobalName = "SAdZones_Settings_Global"
 addon.savedVarsPerCharName = "SAdZones_Settings_Char"
 addon.compartmentFuncName = "SAdZones_Compartment_Func"
 
-function addon:LoadConfig()
+function addon:Initialize()
     self.config.version = "1.0"
     self.author = "Rôkk-Wyrmrest Accord"
 
@@ -17,6 +17,12 @@ function addon:LoadConfig()
                 {
                     type = "checkbox",
                     name = "showMinimap",
+                    default = true,
+                    onValueChange = self.ValueChanged
+                },
+                {
+                    type = "checkbox",
+                    name = "showZoneMap",
                     default = true,
                     onValueChange = self.ValueChanged
                 },
@@ -40,12 +46,6 @@ function addon:LoadConfig()
                 },
                 {
                     type = "checkbox",
-                    name = "showZoneMap",
-                    default = true,
-                    onValueChange = self.ValueChanged
-                },
-                {
-                    type = "checkbox",
                     name = "showStatusBar",
                     default = true,
                     onValueChange = self.ValueChanged
@@ -59,6 +59,9 @@ function addon:LoadConfig()
             }
         }
     end
+    
+    self:RegisterSlashCommand("toggle", self.ToggleFrameCommand)    
+    self:SetupQueueStatusButtonHook()
 end
 
 function addon:OnZoneChange(currentZone)
@@ -76,11 +79,11 @@ function addon:ApplyFrameFiltersForZone(currentZone, forceUpdate)
     
     local zoneSettings = self.settings[self.currentZone]
     if not zoneSettings then
-        addon:debug(string.format("No settings found for zone: %s", tostring(self.currentZone)))
+        addon:Debug(string.format("No settings found for zone: %s", tostring(self.currentZone)))
         return
     end
 
-    addon:debug(string.format("Applying frame filters for zone: %s", tostring(self.currentZone)))
+    addon:Debug(string.format("Applying frame filters for zone: %s", tostring(self.currentZone)))
 
     for settingName, filterFunc in pairs(addon.frameFilterSettings) do
         if filterFunc and zoneSettings[settingName] ~= nil then
@@ -102,7 +105,6 @@ addon.frameFilterSettings = {}
 addon.toggleFrames = {}
 addon.config = {}
 addon.config.updateDelay = .2
-addon.CombatSafe = addon.CombatSafe or {}
 
 local protectedFrames = {
     ["BattlefieldMapFrame"] = true,
@@ -110,12 +112,12 @@ local protectedFrames = {
 
 function addon:setFrameVisibility(frameName, visible)
     if not frameName then
-        addon:debug("setFrameVisibility failed: frameName is nil")
+        addon:Debug("setFrameVisibility failed: frameName is nil")
         return
     end
     
     if protectedFrames[frameName] then
-        addon:debug("Skipping protected frame: " .. frameName)
+        addon:Debug("Skipping protected frame: " .. frameName)
         return
     end
     
@@ -123,10 +125,10 @@ function addon:setFrameVisibility(frameName, visible)
     
     if addon.managedFrames[frameName] == visible and frame then
         if visible and frame:IsShown() then
-            addon:debug("Frame '" .. frameName .. "' is already visible, skipping")
+            addon:Debug("Frame '" .. frameName .. "' is already visible, skipping")
             return
         elseif not visible and not frame:IsShown() then
-            addon:debug("Frame '" .. frameName .. "' is already hidden, skipping")
+            addon:Debug("Frame '" .. frameName .. "' is already hidden, skipping")
             return
         end
     end
@@ -135,7 +137,7 @@ function addon:setFrameVisibility(frameName, visible)
     
     if not frame then
         if not addon.config or not addon.config.updateDelay then
-            addon:debug("setFrameVisibility failed: frame '" .. frameName .. "' doesn't exist and config not available for retry")
+            addon:Debug("setFrameVisibility failed: frame '" .. frameName .. "' doesn't exist and config not available for retry")
             return
         end
         
@@ -145,27 +147,29 @@ function addon:setFrameVisibility(frameName, visible)
         return
     end
     
-    self.CombatSafe.manipulateFrame(self, frame, frameName, visible)
+    self:CombatSafe(function()
+        addon:manipulateFrame(frame, frameName, visible)
+    end)
 end
 
-addon.CombatSafe.manipulateFrame = function(self, frame, frameName, visible)
+function addon:manipulateFrame(frame, frameName, visible)
     local success, err = pcall(function()
         if not visible then
             if not frame.Hide then
-                self:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no Hide method")
+                addon:Debug("setFrameVisibility warning: frame '" .. frameName .. "' has no Hide method")
                 return
             end
             
-            if frame.SetParent and frame.GetParent and not self.originalParents[frameName] then
-                self.originalParents[frameName] = frame:GetParent()
+            if frame.SetParent and frame.GetParent and not addon.originalParents[frameName] then
+                addon.originalParents[frameName] = frame:GetParent()
             end
             
             frame:Hide()
             
             if frame.SetParent then
-                frame:SetParent(self.hiddenParent)
+                frame:SetParent(addon.hiddenParent)
             else
-                self:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no SetParent method")
+                addon:Debug("setFrameVisibility warning: frame '" .. frameName .. "' has no SetParent method")
             end            
 
             if not frame.sadzonesShowHooked then
@@ -176,20 +180,20 @@ addon.CombatSafe.manipulateFrame = function(self, frame, frameName, visible)
                 end)
                 frame.sadzonesShowHooked = true
             end            
-            self:debug("Hid frame: " .. frameName)
+            addon:Debug("Hid frame: " .. frameName)
         else
             if frame.SetParent then
-                local originalParent = self.originalParents[frameName]
+                local originalParent = addon.originalParents[frameName]
                 if originalParent then
                     frame:SetParent(originalParent)
                 else
                     frame:SetParent(UIParent)
                 end
             else
-                self:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no SetParent method")
+                addon:Debug("setFrameVisibility warning: frame '" .. frameName .. "' has no SetParent method")
             end            
             if not frame.Show then
-                self:debug("setFrameVisibility warning: frame '" .. frameName .. "' has no Show method")
+                addon:Debug("setFrameVisibility warning: frame '" .. frameName .. "' has no Show method")
                 return
             end            
             frame:Show()            
@@ -197,7 +201,7 @@ addon.CombatSafe.manipulateFrame = function(self, frame, frameName, visible)
     end)
     
     if not success then
-        self:debug("setFrameVisibility failed for frame '" .. frameName .. "': " .. tostring(err))
+        addon:Debug("setFrameVisibility failed for frame '" .. frameName .. "': " .. tostring(err))
     end
 end
 
@@ -205,42 +209,44 @@ end
 function addon.frameFilterSettings.showMinimap(self, show)
     local showFrame = show == true
     self:setFrameVisibility("MinimapCluster", showFrame)
-    self:debug("Set showMinimap to: " .. tostring(showFrame))
+    self:Debug("Set showMinimap to: " .. tostring(showFrame))
 end
 
 function addon.frameFilterSettings.showMicroMenu(self, show)
     local showFrame = show == true
     self:setFrameVisibility("MicroMenuContainer", showFrame)
-    self:debug("Set showMicroMenu to: " .. tostring(showFrame))
+    self:Debug("Set showMicroMenu to: " .. tostring(showFrame))
 end
 
 function addon.frameFilterSettings.showBagsBar(self, show)
     local showFrame = show == true
     self:setFrameVisibility("BagsBar", showFrame)
-    self:debug("Set showBagsBar to: " .. tostring(showFrame))
+    self:Debug("Set showBagsBar to: " .. tostring(showFrame))
 end
 
 function addon.frameFilterSettings.showQuestFrame(self, show)
     local showFrame = show == true
     self:setFrameVisibility("ObjectiveTrackerFrame", showFrame)
-    self:debug("Set showQuestFrame to: " .. tostring(showFrame))
+    self:Debug("Set showQuestFrame to: " .. tostring(showFrame))
 end
 
 function addon.frameFilterSettings.showZoneMap(self, show)
     local showFrame = show == true
     
-    self.CombatSafe.setBattlefieldMinimapCVar(self, showFrame)
+    self:CombatSafe(function()
+        addon:setBattlefieldMinimapCVar(showFrame)
+    end)
     
-    self:debug("Set showZoneMap to: " .. tostring(showFrame))
+    self:Debug("Set showZoneMap to: " .. tostring(showFrame))
 end
 
-addon.CombatSafe.setBattlefieldMinimapCVar = function(self, showFrame)
+function addon:setBattlefieldMinimapCVar(showFrame)
     if showFrame then
         SetCVar("showBattlefieldMinimap", "1")
-        self:debug("Enabled showBattlefieldMinimap CVar")
+        self:Debug("Enabled showBattlefieldMinimap CVar")
     else
         SetCVar("showBattlefieldMinimap", "0")
-        self:debug("Disabled showBattlefieldMinimap CVar")
+        self:Debug("Disabled showBattlefieldMinimap CVar")
     end
 end
 
@@ -248,24 +254,20 @@ function addon.frameFilterSettings.showStatusBar(self, show)
     local showFrame = show == true
     self:setFrameVisibility("MainStatusTrackingBarContainer", showFrame)
     self:setFrameVisibility("MainStatusTrackingBar", showFrame)
-    self:debug("Set showStatusBar to: " .. tostring(showFrame))
+    self:Debug("Set showStatusBar to: " .. tostring(showFrame))
 end
 
 function addon.frameFilterSettings.showClock(self, show)
     local showFrame = show == true
     self:setFrameVisibility("TimeManagerClockButton", showFrame)
     self:setFrameVisibility("AddonCompartmentFrame", showFrame)
-    self:debug("Set showClock to: " .. tostring(showFrame))
+    self:Debug("Set showClock to: " .. tostring(showFrame))
 end
 
-function addon:RegisterFunctions()
-    self:RegisterSlashCommand("toggle", addon.ToggleFrameCommand)
-end
-
-function addon.ToggleFrameCommand(frameName, hide)
+function addon:ToggleFrameCommand(frameName, hide)
     if not frameName or frameName == "" then
-        addon:info("Usage: /sadzones toggle <frameName>")
-        addon:info("Example: /sadzones toggle minimap")
+        self:Info("Usage: /sadzones toggle <frameName>")
+        self:Info("Example: /sadzones toggle minimap")
         return
     end
     
@@ -283,7 +285,7 @@ function addon.ToggleFrameCommand(frameName, hide)
     end
     
     if not filterFunc then
-        addon:info("Unknown frame: " .. frameName)
+        self:Info("Unknown frame: " .. frameName)
         return
     end
     
@@ -295,9 +297,52 @@ function addon.ToggleFrameCommand(frameName, hide)
     
     addon.toggleFrames[funcKey] = not addon.toggleFrames[funcKey]
     
-    filterFunc(addon, addon.toggleFrames[funcKey])
+    filterFunc(self, addon.toggleFrames[funcKey])
     
     local status = addon.toggleFrames[funcKey] and "shown" or "hidden"
-    addon:info(frameName .. " is now " .. status)
+    self:Info(frameName .. " is now " .. status)
 end
 
+function addon:SetupQueueStatusButtonHook()
+    local queueButton = _G["QueueStatusButton"]
+    
+    if not queueButton then
+        C_Timer.After(0.5, function()
+            addon:SetupQueueStatusButtonHook()
+        end)
+        return
+    end
+    
+    if queueButton.sadzonesOnShowHooked then
+        return
+    end
+    
+    queueButton:HookScript("OnShow", function()
+        addon:RepositionQueueStatusButton()
+    end)
+    
+    queueButton.sadzonesOnShowHooked = true
+end
+
+function addon:RepositionQueueStatusButton()
+    local queueButton = _G["QueueStatusButton"]
+    if not queueButton then
+        return
+    end
+    
+    local clock = _G["TimeManagerClockButton"]
+    if not clock then
+        return
+    end
+    
+    local parent = queueButton:GetParent()
+    
+    if not parent:IsShown() then
+        parent:Show()
+    end
+    
+    queueButton:ClearAllPoints()
+    queueButton:SetPoint("RIGHT", clock, "LEFT", -6, 0)
+    
+    queueButton:SetScale(0.7)
+end
