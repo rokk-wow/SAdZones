@@ -11,7 +11,7 @@ function addon:Initialize()
     self.author = "Rôkk-Wyrmrest Accord"
 
     for _, zoneName in ipairs(addon.zones) do
-        self.sadCore.panels[zoneName] = {
+        self:AddSettingsPanel(zoneName, {
             title = zoneName .. "Title",
             controls = {
                 {
@@ -57,7 +57,7 @@ function addon:Initialize()
                     onValueChange = self.ValueChanged
                 },
             }
-        }
+        })
     end
     
     self:RegisterSlashCommand("toggle", self.ToggleFrameCommand)    
